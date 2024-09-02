@@ -1,6 +1,9 @@
 const issues = require("./issues.json");
 
 exports.handler = async function(event) {
+  // Get params from context
+  const { id, title, description } = JSON.parse(event.body || "{}");
+  const { id: deleteId } = event.queryStringParameters || {}; 
   // Set CORS headers
   const headers = {
     "Access-Control-Allow-Origin": "*", // This allows all domains. For production, specify your domain instead.
@@ -25,41 +28,75 @@ exports.handler = async function(event) {
         statusCode: 200,
         body: JSON.stringify({
           message: "Read operation - static JSON returned",
-          data: issues
-        })
+          issues
+        }),
+        headers
       };
       
       case "POST":
+        const issue = createIssue(id, title, description);
         return {
           statusCode: 200,
           body: JSON.stringify({
             message: "Create operation - received JSON object",
-            receivedData: JSON.parse(event.body)
-          })
+            receivedData: issue
+          }),
+          headers
         };
 
       case "PUT":
+        const updatedIssue = updateIssue(id, title, description);
         return {
           statusCode: 200,
           body: JSON.stringify({
             message: "Update operation - received JSON object",
-            receivedData: JSON.parse(event.body)
-          })
+            receivedData: updatedIssue
+          }),
+          headers
         };
 
       case "DELETE":
+        const deletedIssue = deleteIssue(deleteId);
         return {
           statusCode: 200,
           body: JSON.stringify({
             message: "Delete operation - received data",
-            dataToDelete: event.queryStringParameters
-          })
+            receivedData: deletedIssue
+          }),
+          headers
         };
 
       default:
         return {
           statusCode: 405,
-          body: JSON.stringify({ error: "Method Not Allowed" })
+          body: JSON.stringify({ error: "Method Not Allowed" }),
+          headers
         };
   }
 };
+
+const createIssue = (id, title, description) => {
+  const issue = {
+    id,
+    title,
+    description
+  };
+
+  return issue;
+}
+
+const updateIssue = (id, title, description) => {
+  const index = issues.find(issue => issue.id === id);
+  if (index !== -1) {
+    const issue = {
+      id,
+      title: title || issues[index].title,
+      description: description || issues[index].description
+    };
+    return issue;
+  }
+}
+
+const deleteIssue = (id) => {
+  return issues.find(issue => issue.id == +id);
+} 
